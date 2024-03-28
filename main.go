@@ -19,8 +19,9 @@ import (
 	//
 	//    sw "github.com/myname/myrepo/go"
 	//
-	sw "./go"
 	"os"
+
+	sw "github.com/Karenelise07/GoAIProxy/go"
 )
 
 func main() {
@@ -31,16 +32,14 @@ func main() {
 		log.Fatalf("Failed to open log file: %v", err)
 	}
 	defer logFile.Close()
-	
+	// Set log output to the file
+	log.SetOutput(logFile)
 
 	router := sw.NewRouter()
 
-	log.Fatal(http.ListenAndServe(":8082", router))
-}
+	// 设置静态文件服务
+	fs := http.FileServer(http.Dir("./html"))
+	http.Handle("/", fs)
 
-
-// logError is a helper function to log errors and send an HTTP error response
-func logError(w http.ResponseWriter, message string, statusCode int) {
-	log.Println(message) // Log the error message
-	http.Error(w, message, statusCode) // Send the HTTP error response
+	log.Fatal(http.ListenAndServe("localhost:8082", router))
 }

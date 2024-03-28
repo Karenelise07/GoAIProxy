@@ -9,4 +9,6 @@
 package swagger
 
 type AnyOfCreateChatCompletionRequestModel struct {
+	Name  string `json:"name"`
+	Token string `json:"token"`
 }
