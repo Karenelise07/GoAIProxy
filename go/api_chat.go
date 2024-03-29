@@ -53,7 +53,7 @@ func CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	setOptionalFields(&chatRequest, requestBody)
+	//setOptionalFields(&chatRequest, requestBody)
 
 	resp, err := client.CreateChatCompletion(context.Background(), chatRequest)
 	if err != nil {
@@ -68,23 +68,23 @@ func CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"response": lastMessage})
 }
 
-func setOptionalFields(request *openai.ChatCompletionRequest, body CreateChatCompletionRequest) {
-	if body.Model != "" {
-		request.Model = body.Model
-	}
-	if body.Temperature != 0 {
-		request.Temperature = float32(body.Temperature)
-	}
-	if body.MaxTokens != 0 {
-		request.MaxTokens = int(body.MaxTokens)
-	}
-	if body.TopP != 0 {
-		request.TopP = float32(body.TopP)
-	}
-	if body.FrequencyPenalty != 0 {
-		request.FrequencyPenalty = float32(body.FrequencyPenalty)
-	}
-	if body.PresencePenalty != 0 {
-		request.PresencePenalty = float32(body.PresencePenalty)
-	}
-}
+// func setOptionalFields(request *openai.ChatCompletionRequest, body CreateChatCompletionRequest) {
+// 	if body.Model != "" {
+// 		request.Model = body.Model
+// 	}
+// 	if body.Temperature != 0 {
+// 		request.Temperature = float32(body.Temperature)
+// 	}
+// 	if body.MaxTokens != 0 {
+// 		request.MaxTokens = int(body.MaxTokens)
+// 	}
+// 	if body.TopP != 0 {
+// 		request.TopP = float32(body.TopP)
+// 	}
+// 	if body.FrequencyPenalty != 0 {
+// 		request.FrequencyPenalty = float32(body.FrequencyPenalty)
+// 	}
+// 	if body.PresencePenalty != 0 {
+// 		request.PresencePenalty = float32(body.PresencePenalty)
+// 	}
+// }
