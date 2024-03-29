@@ -37,9 +37,7 @@ func main() {
 
 	router := sw.NewRouter()
 
-	// 设置静态文件服务
-	fs := http.FileServer(http.Dir("./html"))
-	http.Handle("/", fs)
+
 
 	log.Fatal(http.ListenAndServe(":8083", router))
 }

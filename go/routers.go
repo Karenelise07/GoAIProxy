@@ -38,6 +38,9 @@ func NewRouter() *mux.Router {
 			Name(route.Name).
 			Handler(handler)
 	}
+	// 为静态文件服务添加路由
+	// 请确保将"path/to/your/static/files"替换为您的静态文件实际所在的目录路径
+	router.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("./html"))))
 
 	return router
 }
