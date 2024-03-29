@@ -48,7 +48,7 @@ function sendMessage() {
     
     // 显示用户消息
     const messagesContainer = document.getElementById('messages');
-    messagesContainer.innerHTML += `<div class="message user"><div class="text">${message}</div><img class="avatar" src="${userAvatar}" alt="User"></div>`;
+    appendMessage(messagesContainer, 'user', message, userAvatar);
     
     // 发送消息到服务器并处理回复
     sendToBotServer(message);
@@ -57,14 +57,27 @@ function sendMessage() {
   }
 }
 
-
 function sendToBotServer(userMessage) {
-  fetch('http://172.21.44.125:8081/chat', {
+  // 定义请求的数据结构
+  const requestData = {
+    model: "qwen1.5-chat", // 假设您要使用的模型名称
+    // stream: true,
+    // frequency_penalty: 0,
+    // presence_penalty: 0,
+    // temperature: 0.6,
+    // top_p: 1,
+    messages: [{
+      content: userMessage,
+      role: "user"
+    }]
+  };
+
+  fetch('http://172.21.44.125:8083/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ user_message: userMessage }),
+    body: JSON.stringify(requestData), // 使用新的请求数据结构
   })
   .then(response => response.json())
   .then(data => {
@@ -73,7 +86,7 @@ function sendToBotServer(userMessage) {
     
     // 显示机器人回复
     const messagesContainer = document.getElementById('messages');
-    messagesContainer.innerHTML += `<div class="message bot"><img class="avatar" src="${currentBotAvatar}" alt="${currentBot}"><div class="text">${botReply.text}</div></div>`;
+    appendMessage(messagesContainer, 'bot', botReply.text, currentBotAvatar);
 
     // 滚动到最新消息
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -83,6 +96,15 @@ function sendToBotServer(userMessage) {
   });
 }
 
+function appendMessage(container, sender, text, avatar) {
+  let messageHTML = '';
+  if (sender === 'user') {
+    messageHTML = `<div class="message user"><div class="text">${text}</div><img class="avatar" src="${userAvatar}" alt="User"></div>`;
+  } else { // 假设sender为'bot'
+    messageHTML = `<div class="message bot"><img class="avatar" src="${avatar}" alt="Bot"><div class="text">${text}</div></div>`;
+  }
+  container.innerHTML += messageHTML;
+}
 
 
 function init() {
