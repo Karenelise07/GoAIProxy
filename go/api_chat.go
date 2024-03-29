@@ -47,7 +47,7 @@ func CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 		Model: DefaultModel,
 		Messages: []openai.ChatCompletionMessage{
 			{Role: openai.ChatMessageRoleSystem, Content: "You are a helpful assistant."},
-			{Role: openai.ChatMessageRoleUser, Content: requestBody.Messages[0].ChatCompletionRequestUserMessage.Content.Content},
+			{Role: openai.ChatMessageRoleUser, Content: requestBody.Messages[0].Content},
 		},
 	}
 
