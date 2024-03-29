@@ -10,7 +10,7 @@ package swagger
 
 type CreateChatCompletionRequest struct {
 	// A list of messages comprising the conversation so far. [Example Python code](https://cookbook.openai.com/examples/how_to_format_inputs_to_chatgpt_models).
-	Messages []ChatCompletionRequestMessage `json:"messages"`
+	Messages []ChatCompletionRequestUserMessage `json:"messages"`
 	// ID of the model to use. See the [model endpoint compatibility](/docs/models/model-endpoint-compatibility) table for details on which models work with the Chat API.
 	Model string `json:"model"`
 	// Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim.  [See more information about frequency and presence penalties.](/docs/guides/text-generation/parameter-details)
