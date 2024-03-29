@@ -72,7 +72,7 @@ function sendToBotServer(userMessage) {
     }]
   };
 
-  fetch('http://172.21.44.125:8083/v1/chat/completions', {
+  fetch('http://localhost:8083/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
