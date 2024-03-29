@@ -9,4 +9,5 @@
 package swagger
 
 type OneOfChatCompletionRequestUserMessageContent struct {
+	Content string
 }

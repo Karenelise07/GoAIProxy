@@ -47,7 +47,7 @@ func CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 		Model: DefaultModel,
 		Messages: []openai.ChatCompletionMessage{
 			{Role: openai.ChatMessageRoleSystem, Content: "You are a helpful assistant."},
-			{Role: openai.ChatMessageRoleUser, Content: requestBody.Messages},
+			{Role: openai.ChatMessageRoleUser, Content: requestBody.Messages[0].ChatCompletionRequestUserMessage.Content.Content},
 		},
 	}
 
@@ -66,22 +66,22 @@ func CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 }
 
 func setOptionalFields(request *openai.ChatCompletionRequest, body CreateChatCompletionRequest) {
-	if body.Model.Name != "" {
+	if body.Model != "" {
 		request.Model = body.Model
 	}
 	if body.Temperature != 0 {
-		request.Temperature = body.Temperature
+		request.Temperature = float32(body.Temperature)
 	}
 	if body.MaxTokens != 0 {
-		request.MaxTokens = body.MaxTokens
+		request.MaxTokens = int(body.MaxTokens)
 	}
 	if body.TopP != 0 {
-		request.TopP = body.TopP
+		request.TopP = float32(body.TopP)
 	}
 	if body.FrequencyPenalty != 0 {
-		request.FrequencyPenalty = body.FrequencyPenalty
+		request.FrequencyPenalty = float32(body.FrequencyPenalty)
 	}
 	if body.PresencePenalty != 0 {
-		request.PresencePenalty = body.PresencePenalty
+		request.PresencePenalty = float32(body.PresencePenalty)
 	}
 }
