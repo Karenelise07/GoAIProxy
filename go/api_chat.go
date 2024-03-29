@@ -9,15 +9,15 @@
 package swagger
 
 import (
-	"context"
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
-
-	openai "github.com/sashabaranov/go-openai"
 )
 
 const DefaultModel = "qwen1.5-chat"
+const DefaultUrl = "http://172.21.44.125:8091/v1/chat/completions"
 
 func CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -25,47 +25,76 @@ func CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 	// 从查询参数中获取API密钥
 	apiKey := r.URL.Query().Get("api_key")
 	if apiKey == "" {
-		apiKey = "empty"
+		logError(w, "API key is required", http.StatusBadRequest)
+		return
 	}
 
-	// 从查询参数中获取BaseURL，如果未提供，则使用默认值
-	baseURL := r.URL.Query().Get("base_url")
-	if baseURL == "" {
-		baseURL = "http://172.21.44.125:8091/v1" // 这里设置为您的默认BaseURL
-	}
-
-	// 使用提供的API密钥创建OpenAI客户端
-	config := openai.DefaultConfig(apiKey)
-	config.BaseURL = baseURL
-	client := openai.NewClientWithConfig(config)
-
+	// 解析请求体
 	var requestBody CreateChatCompletionRequest
 	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
 		logError(w, "Error decoding request body: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	chatRequest := openai.ChatCompletionRequest{
-		Model: DefaultModel,
-		Messages: []openai.ChatCompletionMessage{
-			{Role: openai.ChatMessageRoleSystem, Content: "You are a helpful assistant."},
-			{Role: openai.ChatMessageRoleUser, Content: requestBody.Messages[0].Content},
+	// 构建请求体
+	chatRequest := map[string]interface{}{
+		"model": DefaultModel, // 请根据需要替换为正确的模型
+		"messages": []map[string]string{
+			{"role": "system", "content": "You are a helpful assistant."},
+			{"role": "user", "content": requestBody.Messages[0].Content},
 		},
 	}
-
-	//setOptionalFields(&chatRequest, requestBody)
-
-	resp, err := client.CreateChatCompletion(context.Background(), chatRequest)
+	requestBodyBytes, err := json.Marshal(chatRequest)
 	if err != nil {
-		fmt.Println(chatRequest)
-		logError(w, "ChatCompletion error: "+err.Error(), http.StatusInternalServerError)
+		logError(w, "Error encoding request body: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	lastMessage := resp.Choices[len(resp.Choices)-1].Message.Content
+	// 构建HTTP请求
+	req, err := http.NewRequest("POST", DefaultUrl, bytes.NewBuffer(requestBodyBytes))
+	if err != nil {
+		logError(w, "Error creating request: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
+	// 发送请求
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		logError(w, "Error sending request: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"response": lastMessage})
+	// 读取响应体
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logError(w, "Error reading response body: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// 解析响应体
+	var respData struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+	}
+	if err := json.Unmarshal(respBody, &respData); err != nil {
+		logError(w, "Error parsing response body: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// 假设我们只关心最后一条消息
+	if len(respData.Choices) > 0 {
+		lastMessage := respData.Choices[len(respData.Choices)-1].Message.Content
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"response": lastMessage})
+	} else {
+		logError(w, "No response from OpenAI", http.StatusInternalServerError)
+	}
 }
 
 // func setOptionalFields(request *openai.ChatCompletionRequest, body CreateChatCompletionRequest) {
