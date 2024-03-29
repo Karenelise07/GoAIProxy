@@ -11,6 +11,7 @@ package swagger
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	openai "github.com/sashabaranov/go-openai"
@@ -56,6 +57,7 @@ func CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := client.CreateChatCompletion(context.Background(), chatRequest)
 	if err != nil {
+		fmt.Println(chatRequest)
 		logError(w, "ChatCompletion error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
