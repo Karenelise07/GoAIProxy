@@ -35,6 +35,7 @@ func CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 
 	// 使用提供的API密钥创建OpenAI客户端
 	config := openai.DefaultConfig(apiKey)
+	config.BaseURL = baseURL
 	client := openai.NewClientWithConfig(config)
 
 	var requestBody CreateChatCompletionRequest
