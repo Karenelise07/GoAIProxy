@@ -1,0 +1,43 @@
+<meta charset="UTF-8">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chatbot Interface with Avatars</title>
+<link rel="stylesheet" href="./style.css"> <!-- 假设所有CSS样式都放在style.css文件中 -->
+</head>
+<body>
+
+<div id="botList">
+  <!-- 机器人列表 -->
+  <div class="botItem" onclick="selectBot('Bot 1', './bot.jpg', 0)">
+    <img src="./bot.jpg" alt="Bot 1 Avatar" class="botAvatar"> Bot 1
+  </div>
+  <div class="botItem" onclick="selectBot('Bot 2', 'https://example.com/bot2_avatar.png', 1)">
+    <img src="https://example.com/bot2_avatar.png" alt="Bot 2 Avatar" class="botAvatar"> Bot 2
+  </div>
+  <div class="botItem" onclick="selectBot('Bot 3', 'https://example.com/bot3_avatar.png', 2)">
+    <img src="https://example.com/bot3_avatar.png" alt="Bot 3 Avatar" class="botAvatar"> Bot 3
+  </div>
+</div>
+
+<div id="chatBox">
+  <!-- 添加显示当前机器人信息的区域 -->
+  <div id="currentBotInfo">
+    <img id="currentBotAvatar" src="" alt="Bot Avatar" style="width: 50px; height: 50px; border-radius: 50%;"> <!-- 机器人头像 -->
+    <h3 id="currentBotName"></h3> <!-- 机器人名称 -->
+  </div>
+  <div id="messages">
+    <!-- 对话消息将显示在这里 -->
+  </div>
+  <div id="inputArea">
+    <input type="text" id="userInput" placeholder="Type a message...">
+    <button onclick="sendMessage()">Send</button>
+  </div>
+</div>
+
+<script src="./chat.js"></script> <!-- 引入JavaScript文件 -->
+</body>
+</html>
+

@@ -1,0 +1,28 @@
+body { display: flex; height: 100vh; margin: 0; font-family: Arial, sans-serif; }
+#botList { width: 20%; background: #2c3e50; padding: 20px; overflow-y: auto; color: #ecf0f1; }
+#chatBox { flex-grow: 1; padding: 20px; display: flex; flex-direction: column; }
+.botItem { padding: 10px; cursor: pointer; border-radius: 5px; margin-bottom: 10px; transition: background-color 0.3s; }
+.botItem:hover { background-color: #34495e; }
+.botAvatar {
+  width: 40px; /* 头像的宽度 */
+  height: 40px; /* 头像的高度 */
+  border-radius: 50%; /* 使头像呈圆形 */
+  margin-right: 10px; /* 在头像和机器人名字之间添加一些间距 */
+}
+#messages { flex-grow: 1; overflow-y: auto; padding: 10px; background: #ecf0f1; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+.message { display: flex; margin-bottom: 10px; align-items: center; }
+.bot { justify-content: flex-start; }
+.user { justify-content: flex-end; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; margin: 0 10px; }
+.text { padding: 10px; background-color: #3498db; color: white; border-radius: 10px; max-width: 60%; }
+#inputArea { display: flex; }
+#userInput { flex-grow: 1; padding: 10px; border-radius: 5px; border: 1px solid #bdc3c7; margin-right: 10px; }
+button { padding: 10px 20px; background-color: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.3s; }
+button:hover { background-color: #2980b9; }
+#botList div.selected {
+  background-color: #0056b3; /* 深蓝色背景表示选中 */
+  color: white; /* 可选：改变文字颜色以提高对比度 */
+}
+#botList div.selected .botAvatar {
+  border: 2px solid #2980b9; /* 为选中的机器人头像添加边框 */
+}
