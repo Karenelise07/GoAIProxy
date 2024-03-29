@@ -50,15 +50,6 @@ func Index(w http.ResponseWriter, r *http.Request) {
 }
 
 var routes = Routes{
-	// 添加一个针对根路径的路由
-	Route{
-		"Root",
-		"GET",
-		"/",
-		func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, "Welcome to the API!")
-		},
-	},
 	Route{
 		"Index",
 		"GET",
