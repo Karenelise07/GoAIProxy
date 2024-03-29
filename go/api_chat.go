@@ -25,8 +25,9 @@ func CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 	// 从查询参数中获取API密钥
 	apiKey := r.URL.Query().Get("api_key")
 	if apiKey == "" {
-		logError(w, "API key is required", http.StatusBadRequest)
-		return
+		//logError(w, "API key is required", http.StatusBadRequest)
+		apiKey = "empty"
+		//return
 	}
 
 	// 解析请求体
