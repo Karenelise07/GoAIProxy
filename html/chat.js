@@ -81,15 +81,20 @@ function sendToBotServer(userMessage) {
   })
   .then(response => response.json())
   .then(data => {
-    const botReply = { sender: 'bot', text: data.response };
-    botConversations[currentBot].push(botReply);
-    
-    // 显示机器人回复
-    const messagesContainer = document.getElementById('messages');
-    appendMessage(messagesContainer, 'bot', botReply.text, currentBotAvatar);
-
-    // 滚动到最新消息
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    // 检查是否有choices数组，并且至少有一个元素
+    if (data.choices && data.choices.length > 0) {
+      // 获取第一个choice中的message内容
+      const botReplyContent = data.choices[0].message.content;
+      const botReply = { sender: 'bot', text: botReplyContent };
+      botConversations[currentBot].push(botReply);
+      
+      // 显示机器人回复
+      const messagesContainer = document.getElementById('messages');
+      appendMessage(messagesContainer, 'bot', botReply.text, currentBotAvatar);
+  
+      // 滚动到最新消息
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
   })
   .catch(error => {
     console.error('Error sending message to bot:', error);

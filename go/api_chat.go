@@ -68,33 +68,21 @@ func CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	// 读取响应体
+	// 直接将响应体转发回去
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logError(w, "Error reading response body: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// 解析响应体
-	var respData struct {
-		Choices []struct {
-			Message struct {
-				Content string `json:"content"`
-			} `json:"message"`
-		} `json:"choices"`
-	}
-	if err := json.Unmarshal(respBody, &respData); err != nil {
-		logError(w, "Error parsing response body: "+err.Error(), http.StatusInternalServerError)
+	// 设置响应头
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	// 将响应体写入响应
+	_, err = w.Write(respBody)
+	if err != nil {
+		logError(w, "Error writing response body: "+err.Error(), http.StatusInternalServerError)
 		return
-	}
-
-	// 假设我们只关心最后一条消息
-	if len(respData.Choices) > 0 {
-		lastMessage := respData.Choices[len(respData.Choices)-1].Message.Content
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"response": lastMessage})
-	} else {
-		logError(w, "No response from OpenAI", http.StatusInternalServerError)
 	}
 }
 
