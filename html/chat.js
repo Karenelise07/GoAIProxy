@@ -144,17 +144,39 @@ function processAccumulatedContent(accumulatedContent) {
 }
 
 function appendMessage(container, sender, text, avatar) {
-  let messageHTML = '';
+  let messageElement = document.createElement('div');
+  messageElement.classList.add('message', sender);
+  let avatarElement = document.createElement('img');
+  avatarElement.classList.add('avatar');
+  avatarElement.src = avatar;
+  avatarElement.alt = sender === 'user' ? 'User' : 'Bot';
+  let textElement = document.createElement('div');
+  textElement.classList.add('text');
+
   if (sender === 'user') {
-    messageHTML = `<div class="message user"><div class="text">${text}</div><img class="avatar" src="${userAvatar}" alt="User"></div>`;
+    messageElement.appendChild(textElement);
+    messageElement.appendChild(avatarElement);
   } else { // 假设sender为'bot'
-    messageHTML = `<div class="message bot"><img class="avatar" src="${avatar}" alt="Bot"><div class="text">${text}</div></div>`;
+    messageElement.appendChild(avatarElement);
+    messageElement.appendChild(textElement);
   }
-  container.innerHTML += messageHTML;
+
+  container.appendChild(messageElement);
+  typeMessage(text, textElement);
+}
+
+function typeMessage(message, element, index = 0) {
+  if (index < message.length) {
+    element.innerHTML += message.charAt(index);
+    index++;
+    setTimeout(() => typeMessage(message, element, index), 50); // 调整速度
+  }
 }
 
 
 function init() {
+  // 默认选择Bot 1
+  selectBot('Bot 1', './bot.jpg', 0);
   // 监听回车键发送消息
   document.getElementById('userInput').addEventListener('keypress', function(event) {
     if (event.key === 'Enter') {
