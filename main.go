@@ -22,6 +22,7 @@ import (
 	"os"
 
 	sw "github.com/Karenelise07/GoAIProxy/go"
+	"github.com/gorilla/handlers"
 )
 
 func main() {
@@ -36,8 +37,12 @@ func main() {
 	log.SetOutput(logFile)
 
 	router := sw.NewRouter()
+	// 设置CORS
+	corsOpts := handlers.AllowedOrigins([]string{"*"}) // 允许所有域，注意这在生产环境中可能是不安全的
+	// 这里可以根据需要添加更多的CORS配置，例如 AllowedMethods, AllowedHeaders 等
 
-
+	// 应用CORS中间件到路由器
+	http.Handle("/", handlers.CORS(corsOpts)(router))
 
 	log.Fatal(http.ListenAndServe(":8083", router))
 }

@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
@@ -43,14 +42,7 @@ func NewRouter() *mux.Router {
 	// 请确保将"path/to/your/static/files"替换为您的静态文件实际所在的目录路径
 	router.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("./html"))))
 
-	// 设置CORS
-	corsHandler := handlers.CORS(
-		handlers.AllowedOrigins([]string{"*"}), // 允许所有域，注意这在生产环境中可能是不安全的
-		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
-		handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"}),
-	)
-
-	return handlers.CORS(corsHandler)(router)
+	return router
 }
 
 func Index(w http.ResponseWriter, r *http.Request) {
