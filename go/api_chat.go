@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -21,14 +22,14 @@ const DefaultUrl = "http://172.21.44.125:8091/v1/chat/completions"
 
 func CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+
 	// 从查询参数中获取API密钥
-	apiKey := r.URL.Query().Get("api_key")
-	if apiKey == "" {
-		//logError(w, "API key is required", http.StatusBadRequest)
-		apiKey = "empty"
-		//return
-	}
+	// apiKey := r.URL.Query().Get("api_key")
+	// if apiKey == "" {
+	// 	logError(w, "API key is required", http.StatusBadRequest)
+	// 	return
+	// }
+	apiKey := "empty"
 
 	// 解析请求体
 	var requestBody CreateChatCompletionRequest
@@ -44,6 +45,7 @@ func CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 			{"role": "system", "content": "You are a helpful assistant."},
 			{"role": "user", "content": requestBody.Messages[0].Content},
 		},
+		"stream": true,
 	}
 	requestBodyBytes, err := json.Marshal(chatRequest)
 	if err != nil {
@@ -59,6 +61,7 @@ func CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
+
 	// 发送请求
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -68,21 +71,38 @@ func CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	// 直接将响应体转发回去
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		logError(w, "Error reading response body: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
+	// 设置Transfer-Encoding为chunked，这对于流式传输是必要的
+	w.Header().Set("Transfer-Encoding", "chunked")
 
-	// 设置响应头
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	// 将响应体写入响应
-	_, err = w.Write(respBody)
-	if err != nil {
-		logError(w, "Error writing response body: "+err.Error(), http.StatusInternalServerError)
-		return
+	// 创建一个缓冲区来存储从OpenAI接收到的数据
+	buf := make([]byte, 1024)
+	for {
+		// 从OpenAI的响应中读取数据
+		n, err := resp.Body.Read(buf)
+		if n > 0 {
+			// 将读取到的数据写入到客户端的响应中
+			_, writeErr := w.Write(buf[:n])
+			if writeErr != nil {
+				// 如果写入客户端时出错，记录错误并退出循环
+				log.Printf("Error writing to client: %v", writeErr)
+				return
+			}
+			// 使用http.Flusher将缓冲中的数据立即发送给客户端
+			if flusher, ok := w.(http.Flusher); ok {
+				flusher.Flush()
+			} else {
+				log.Println("Expected http.ResponseWriter to be an http.Flusher")
+				return
+			}
+		}
+		if err == io.EOF {
+			// 如果读取到的是EOF，表示OpenAI的响应已经结束
+			break
+		} else if err != nil {
+			// 如果读取过程中出现错误，记录错误并退出循环
+			log.Printf("Error reading from OpenAI response: %v", err)
+			return
+		}
 	}
 }
 

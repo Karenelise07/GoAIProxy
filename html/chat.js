@@ -58,14 +58,8 @@ function sendMessage() {
 }
 
 function sendToBotServer(userMessage) {
-  // 定义请求的数据结构
   const requestData = {
-    model: "qwen1.5-chat", // 假设您要使用的模型名称
-    // stream: true,
-    // frequency_penalty: 0,
-    // presence_penalty: 0,
-    // temperature: 0.6,
-    // top_p: 1,
+    model: "qwen1.5-chat",
     messages: [{
       content: userMessage,
       role: "user"
@@ -77,27 +71,75 @@ function sendToBotServer(userMessage) {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(requestData), // 使用新的请求数据结构
-  })
-  .then(response => response.json())
-  .then(data => {
-    // 检查是否有choices数组，并且至少有一个元素
-    if (data.choices && data.choices.length > 0) {
-      // 获取第一个choice中的message内容
-      const botReplyContent = data.choices[0].message.content;
-      const botReply = { sender: 'bot', text: botReplyContent };
-      botConversations[currentBot].push(botReply);
-      
-      // 显示机器人回复
-      const messagesContainer = document.getElementById('messages');
-      appendMessage(messagesContainer, 'bot', botReply.text, currentBotAvatar);
-  
-      // 滚动到最新消息
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    body: JSON.stringify(requestData),
+  }).then(response => {
+    console.log('Received response from server');
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let accumulatedContent = ''; // 用于累积对话内容
+
+    function read() {
+      reader.read().then(({done, value}) => {
+        if (done) {
+          console.log('Stream completed');
+          // 在这里处理累积的内容 accumulatedContent
+          // 因为流结束了，我们需要处理最后一次累积的数据
+          processAccumulatedContent(accumulatedContent);
+          return;
+        }
+        const chunk = decoder.decode(value, {stream: true});
+        accumulatedContent += chunk; // 累积从流中读取的内容
+        read(); // 继续读取下一个数据块
+      }).catch(error => {
+        console.error('Error reading from stream:', error);
+      });
     }
-  })
-  .catch(error => {
+    read();
+  }).catch(error => {
     console.error('Error sending message to bot:', error);
+  });
+}
+
+function processAccumulatedContent(accumulatedContent) {
+  // 首先，移除结束标记之后的所有内容（如果存在）
+  const endIndex = accumulatedContent.indexOf('data: [DONE]');
+  if (endIndex !== -1) {
+    // 如果找到结束标记，只保留结束标记之前的内容
+    accumulatedContent = accumulatedContent.substring(0, endIndex);
+  }
+ 
+  let jsonStrings = accumulatedContent.split(/data: (?={)/);
+  jsonStrings = jsonStrings.filter(str => str.trim().startsWith("{"));
+
+  let fullMessage = ''; // 用于累积完整的消息内容
+
+  jsonStrings.forEach(jsonStr => {
+    console.log(jsonStr); // 输出当前尝试解析的字符串
+    try {
+      let jsonObj = JSON.parse(jsonStr);
+      // 检查是否有内容需要累积
+      if (jsonObj.choices && jsonObj.choices.length > 0) {
+        const choice = jsonObj.choices[0];
+        if (choice.delta && choice.delta.content) {
+          // 累积内容
+          fullMessage += choice.delta.content;
+        }
+        // 检查是否是对话结束的信号
+        if (choice.finish_reason === 'stop') {
+          // 如果是结束信号，展示累积的完整消息
+          const botReply = { sender: 'bot', text: fullMessage };
+          botConversations[currentBot].push(botReply);
+          const messagesContainer = document.getElementById('messages');
+          appendMessage(messagesContainer, 'bot', botReply.text, currentBotAvatar);
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+          // 重置fullMessage以准备下一轮对话
+          fullMessage = '';
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing JSON chunk:', error);
+    }
   });
 }
 
