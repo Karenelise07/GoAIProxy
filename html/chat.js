@@ -130,35 +130,51 @@ function processChunk(chunk) {
 
     // 当计数器回到零时，我们找到了一个完整的JSON对象
     if (braceCounter === 0 && inObject) {
-      // 我们找到了一个完整的JSON对象
       let jsonStr = accumulatedData.substring(start, i + 1); // 提取JSON字符串
       try {
-        console.log("Trying to parse JSON:", jsonStr); // 打印出尝试解析的字符串
         let jsonObj = JSON.parse(jsonStr);
-        // 处理解析出的JSON对象
         if (jsonObj.choices && jsonObj.choices.length > 0) {
           const choice = jsonObj.choices[0];
           if (choice.delta && choice.delta.content) {
-            // 假设我们有一个函数来逐字展示消息
-            appendMessage(document.getElementById('messages'), 'system', choice.delta.content, currentBotAvatar);
-
-            //appendMessage(choice.delta.content, document.getElementById('messages'));
+            // 如果当前没有机器人消息容器，或者对话已结束，创建一个新的
+            if (!currentBotMessageContainer || choice.finish_reason === 'stop') {
+              currentBotMessageContainer = createBotMessageContainer();
+              document.getElementById('messages').appendChild(currentBotMessageContainer);
+            }
+            // 将新的内容添加到当前机器人消息容器中
+            typeMessage(choice.delta.content, currentBotMessageContainer);
           }
-          // 检查是否是对话结束的信号
           if (choice.finish_reason === 'stop') {
-            // 如果是结束信号，可以在这里执行一些清理工作或者标记对话结束
             console.log('Conversation ended.');
+            currentBotMessageContainer = null; // 重置，为下一条消息准备
           }
         }
       } catch (error) {
         console.error('Error parsing JSON chunk:', error);
       }
-      // 准备查找下一个JSON对象
       inObject = false; // 重置状态
       accumulatedData = accumulatedData.substring(i + 1); // 移除已处理的部分
-      i = -1; // 重置索引，因为我们修改了accumulatedData
+      i = -1; // 重置索引
     }
   }
+}
+
+function createBotMessageContainer() {
+  let container = document.createElement('div');
+  container.classList.add('message', 'system');
+  
+  let avatarElement = document.createElement('img');
+  avatarElement.classList.add('avatar');
+  avatarElement.src = currentBotAvatar;
+  avatarElement.alt = 'System';
+  
+  let textContainer = document.createElement('div');
+  textContainer.classList.add('text');
+  
+  container.appendChild(avatarElement);
+  container.appendChild(textContainer);
+  
+  return textContainer; // 返回文本容器，以便我们可以向其中添加文本
 }
 
 function appendMessage(container, sender, text, avatar) {
