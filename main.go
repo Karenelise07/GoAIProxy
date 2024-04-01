@@ -37,12 +37,15 @@ func main() {
 	log.SetOutput(logFile)
 
 	router := sw.NewRouter()
-	// 设置CORS
-	corsOpts := handlers.AllowedOrigins([]string{"*"}) // 允许所有域，注意这在生产环境中可能是不安全的
-	// 这里可以根据需要添加更多的CORS配置，例如 AllowedMethods, AllowedHeaders 等
+	// 配置CORS
+	corsHandler := handlers.CORS(
+		handlers.AllowedOrigins([]string{"*"}),                                                 // 允许所有域，注意这在生产环境中可能是不安全的
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),           // 允许的HTTP方法
+		handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"}), // 允许的头部
+	)
 
-	// 应用CORS中间件到路由器
-	http.Handle("/", handlers.CORS(corsOpts)(router))
+	// 应用CORS中间件到路由器，并启动HTTP服务
+	log.Fatal(http.ListenAndServe(":8083", corsHandler(router)))
 
 	log.Fatal(http.ListenAndServe(":8083", router))
 }
