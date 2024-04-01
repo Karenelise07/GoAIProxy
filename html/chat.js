@@ -1,5 +1,8 @@
 let currentBot = '';
 let currentBotAvatar = '';
+let accumulatedData = ''; // 用于累积接收到的数据
+let currentBotMessageContainer = null; // 跟踪当前机器人消息的容器
+
 const userAvatar = './user.jpg'; // 假设用户头像URL
 const botConversations = {
   'Bot 1': [],
@@ -44,6 +47,7 @@ function sendMessage() {
   const message = input.value.trim();
   if (message && currentBot) {
     const userMessage = { sender: 'user', text: message };
+    // 更新对话历史
     botConversations[currentBot].push(userMessage);
     
     // 显示用户消息
@@ -58,12 +62,19 @@ function sendMessage() {
 }
 
 function sendToBotServer(userMessage) {
+
+  // 获取当前机器人的对话历史
+  const currentConversations = botConversations[currentBot] || [];
+
+  // 将对话历史转换为后端服务所需的格式
+  const messages = currentConversations.map(message => ({
+    content: message.text,
+    role: message.sender === 'user' ? "user" : "system" // 使用 "system" 来标识机器人消息
+  }));
+
   const requestData = {
     model: "qwen1.5-chat",
-    messages: [{
-      content: userMessage,
-      role: "user"
-    }]
+    messages: messages
   };
 
   fetch('http://localhost:8083/v1/chat/completions', {
@@ -82,13 +93,11 @@ function sendToBotServer(userMessage) {
       reader.read().then(({done, value}) => {
         if (done) {
           console.log('Stream completed');
-          // 在这里处理累积的内容 accumulatedContent
-          // 因为流结束了，我们需要处理最后一次累积的数据
-          processAccumulatedContent(accumulatedContent);
           return;
         }
         const chunk = decoder.decode(value, {stream: true});
         accumulatedContent += chunk; // 累积从流中读取的内容
+        processChunk(chunk); // 处理接收到的每个数据块
         read(); // 继续读取下一个数据块
       }).catch(error => {
         console.error('Error reading from stream:', error);
@@ -100,76 +109,91 @@ function sendToBotServer(userMessage) {
   });
 }
 
-function processAccumulatedContent(accumulatedContent) {
-  // 首先，移除结束标记之后的所有内容（如果存在）
-  const endIndex = accumulatedContent.indexOf('data: [DONE]');
-  if (endIndex !== -1) {
-    // 如果找到结束标记，只保留结束标记之前的内容
-    accumulatedContent = accumulatedContent.substring(0, endIndex);
-  }
- 
-  let jsonStrings = accumulatedContent.split(/data: (?={)/);
-  jsonStrings = jsonStrings.filter(str => str.trim().startsWith("{"));
 
-  let fullMessage = ''; // 用于累积完整的消息内容
+function processChunk(chunk) {
+  accumulatedData += chunk; // 累积接收到的数据
 
-  jsonStrings.forEach(jsonStr => {
-    console.log(jsonStr); // 输出当前尝试解析的字符串
-    try {
-      let jsonObj = JSON.parse(jsonStr);
-      // 检查是否有内容需要累积
-      if (jsonObj.choices && jsonObj.choices.length > 0) {
-        const choice = jsonObj.choices[0];
-        if (choice.delta && choice.delta.content) {
-          // 累积内容
-          fullMessage += choice.delta.content;
-        }
-        // 检查是否是对话结束的信号
-        if (choice.finish_reason === 'stop') {
-          // 如果是结束信号，展示累积的完整消息
-          const botReply = { sender: 'bot', text: fullMessage };
-          botConversations[currentBot].push(botReply);
-          const messagesContainer = document.getElementById('messages');
-          appendMessage(messagesContainer, 'bot', botReply.text, currentBotAvatar);
-          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  let start = 0; // 初始化查找起点
+  let braceCounter = 0; // 大括号计数器
+  let inObject = false; // 是否开始记录一个对象
 
-          // 重置fullMessage以准备下一轮对话
-          fullMessage = '';
-        }
+  for (let i = 0; i < accumulatedData.length; i++) {
+    if (accumulatedData[i] === '{') {
+      braceCounter++;
+      if (!inObject) {
+        start = i; // 记录对象开始的位置
+        inObject = true;
       }
-    } catch (error) {
-      console.error('Error parsing JSON chunk:', error);
+    } else if (accumulatedData[i] === '}') {
+      braceCounter--;
     }
-  });
+
+    // 当计数器回到零时，我们找到了一个完整的JSON对象
+    if (braceCounter === 0 && inObject) {
+      // 我们找到了一个完整的JSON对象
+      let jsonStr = accumulatedData.substring(start, i + 1); // 提取JSON字符串
+      try {
+        console.log("Trying to parse JSON:", jsonStr); // 打印出尝试解析的字符串
+        let jsonObj = JSON.parse(jsonStr);
+        // 处理解析出的JSON对象
+        if (jsonObj.choices && jsonObj.choices.length > 0) {
+          const choice = jsonObj.choices[0];
+          if (choice.delta && choice.delta.content) {
+            // 假设我们有一个函数来逐字展示消息
+            appendMessage(document.getElementById('messages'), 'system', choice.delta.content, currentBotAvatar);
+
+            //appendMessage(choice.delta.content, document.getElementById('messages'));
+          }
+          // 检查是否是对话结束的信号
+          if (choice.finish_reason === 'stop') {
+            // 如果是结束信号，可以在这里执行一些清理工作或者标记对话结束
+            console.log('Conversation ended.');
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing JSON chunk:', error);
+      }
+      // 准备查找下一个JSON对象
+      inObject = false; // 重置状态
+      accumulatedData = accumulatedData.substring(i + 1); // 移除已处理的部分
+      i = -1; // 重置索引，因为我们修改了accumulatedData
+    }
+  }
 }
 
 function appendMessage(container, sender, text, avatar) {
   let messageElement = document.createElement('div');
-  messageElement.classList.add('message', sender);
+  messageElement.classList.add('message', sender); // 使用 sender 作为类名，以便于 CSS 样式定制
+  
   let avatarElement = document.createElement('img');
   avatarElement.classList.add('avatar');
   avatarElement.src = avatar;
-  avatarElement.alt = sender === 'user' ? 'User' : 'Bot';
+  avatarElement.alt = sender === 'user' ? 'User' : 'System'; // 根据 sender 调整 alt 文本
+  
   let textElement = document.createElement('div');
   textElement.classList.add('text');
-
+  
+  // 根据 sender 调整消息元素的顺序
   if (sender === 'user') {
     messageElement.appendChild(textElement);
     messageElement.appendChild(avatarElement);
-  } else { // 假设sender为'bot'
+  } else { // 假设 sender 为 'system'
     messageElement.appendChild(avatarElement);
     messageElement.appendChild(textElement);
   }
-
+  
   container.appendChild(messageElement);
-  typeMessage(text, textElement);
+  typeMessage(text, textElement); // 确保您有一个实现了逐字显示文本的 typeMessage 函数
 }
 
-function typeMessage(message, element, index = 0) {
+function typeMessage(message, container, index = 0) {
   if (index < message.length) {
-    element.innerHTML += message.charAt(index);
-    index++;
-    setTimeout(() => typeMessage(message, element, index), 50); // 调整速度
+    let textElement = document.createElement('span'); // 创建一个新的span元素来容纳当前字符
+    textElement.textContent = message.charAt(index);
+    //textElement.classList.add('system-message'); // 假设你已经定义了相应的CSS类
+    container.appendChild(textElement); // 将span元素添加到容器中
+
+    setTimeout(() => typeMessage(message, container, index + 1), 50); // 递归调用以展示下一个字符
   }
 }
 

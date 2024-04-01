@@ -38,14 +38,11 @@ func CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 构建请求体
+	// 构建请求体，这里我们直接使用前端传递的消息
 	chatRequest := map[string]interface{}{
-		"model": DefaultModel, // 请根据需要替换为正确的模型
-		"messages": []map[string]string{
-			{"role": "system", "content": "You are a helpful assistant."},
-			{"role": "user", "content": requestBody.Messages[0].Content},
-		},
-		"stream": true,
+		"model":    DefaultModel,
+		"messages": requestBody.Messages,
+		"stream":   true,
 	}
 	requestBodyBytes, err := json.Marshal(chatRequest)
 	if err != nil {
